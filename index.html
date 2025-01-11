@@ -4,12 +4,23 @@
   <meta charset="UTF-8">
   <title>Tippstreifen 2.0</title>
   <style>
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
-      padding: 0;
+      display: flex;
+      flex-direction: column;
       background-color: #00008b;
       font-family: Arial, sans-serif;
       color: #f0f0f0;
+    }
+    .header {
+      text-align: center;
+      padding: 10px;
+      background-color: #ffffff;
+      color: #000000;
+      font-size: 14px;
+      font-weight: bold;
+      border-bottom: 1px solid #ccc;
     }
     h1 {
       width: 100%;
@@ -28,7 +39,7 @@
       justify-content: space-between;
       align-items: flex-start;
       padding: 20px;
-      height: 80vh;
+      flex: 1;
       box-sizing: border-box;
     }
     .left-panel {
@@ -180,6 +191,7 @@
   </style>
 </head>
 <body>
+  <div class="header">2025 Michael Wolf @V 1.4</div>
   <h1>Tippstreifen 2.0</h1>
   <div class="main-container">
     <div class="left-panel" tabindex="0">
@@ -230,7 +242,6 @@
       <button class="button drucken-button">Drucken</button>
     </div>
   </div>
-  
   <!-- Externer JavaScript-Datei einbinden -->
   <script src="calculator.js"></script>
 </body>
