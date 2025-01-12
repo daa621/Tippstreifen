@@ -149,7 +149,7 @@ leftPanel.addEventListener("keydown", (ev) => {
 function handleOperatorClassic(op) {
   const trim = currentLine.trim();
   if (!trim) {
-    // kein Wert => merken wir uns nur den Operator
+    // Kein Wert => merken wir uns nur den Operator
     classicLastOp = op;
     return;
   }
@@ -169,13 +169,13 @@ function handleOperatorClassic(op) {
     if (classicTerms.length === 0) {
       // Kein Summand => pushen
       classicTerms.push(value);
-      lines.push({ text: formatNumber(value) + classicLastOp, color: "black", bold: false });
+      lines.push({ text: formatNumber(value) + op, color: "black", bold: false }); // Änderung hier
     } else {
       let lastVal = classicTerms[classicTerms.length - 1];
       if (classicLastOp === "*") {
         let result = lastVal * value;
         classicTerms[classicTerms.length - 1] = result;
-        lines.push({ text: formatNumber(value) + "*", color: "black", bold: false });
+        lines.push({ text: formatNumber(value) + op, color: "black", bold: false }); // Änderung hier
       } else {
         // classicLastOp === "/"
         if (value === 0) {
@@ -186,10 +186,10 @@ function handleOperatorClassic(op) {
         }
         let result = lastVal / value;
         classicTerms[classicTerms.length - 1] = result;
-        lines.push({ text: formatNumber(value) + "/", color: "black", bold: false });
+        lines.push({ text: formatNumber(value) + op, color: "black", bold: false }); // Änderung hier
       }
     }
-    // operation verbraucht
+    // Operation verbraucht
     classicLastOp = null;
     usedThisNumber = true; // Wir haben "value" in * / verarbeitet
   }
@@ -201,23 +201,14 @@ function handleOperatorClassic(op) {
     } else if (op === "-") {
       classicTerms.push(-value);
       lines.push({ text: formatNumber(value) + "-", color: "red", bold: false });
-    } else if (op === "*") {
+    } else if (op === "*" || op === "/") {
       if (classicTerms.length === 0) {
         classicTerms.push(value);
-        lines.push({ text: formatNumber(value) + "*", color: "black", bold: false });
+        lines.push({ text: formatNumber(value) + op, color: "black", bold: false });
       } else {
         lines.push({ text: formatNumber(value), color: "black", bold: false });
         classicTerms.push(value);
-        lines.push({ text: "*", color: "black", bold: false });
-      }
-    } else if (op === "/") {
-      if (classicTerms.length === 0) {
-        classicTerms.push(value);
-        lines.push({ text: formatNumber(value) + "/", color: "black", bold: false });
-      } else {
-        lines.push({ text: formatNumber(value), color: "black", bold: false });
-        classicTerms.push(value);
-        lines.push({ text: "/", color: "black", bold: false });
+        lines.push({ text: op, color: "black", bold: false });
       }
     }
   }
@@ -235,21 +226,26 @@ function handleOperatorClassic(op) {
 function handleEnterClassic() {
   const trim = currentLine.trim();
   const { num, isPercent } = parseNumber(trim);
+  
   if (!isNaN(num) && trim !== "") {
     let value = num;
     if (isPercent) value /= 100;
+    
     // Falls noch * / offen => wende sie jetzt an
     if (classicLastOp === "*" || classicLastOp === "/") {
       if (classicTerms.length === 0) {
         classicTerms.push(value);
-        lines.push({ text: formatNumber(value) + classicLastOp, color: "black", bold: false });
+        // Kein Operator anfügen
+        lines.push({ text: formatNumber(value), color: "black", bold: false });
       } else {
         let lastVal = classicTerms[classicTerms.length - 1];
         if (classicLastOp === "*") {
           let result = lastVal * value;
           classicTerms[classicTerms.length - 1] = result;
-          lines.push({ text: formatNumber(value) + "*", color: "black", bold: false });
+          // Kein Operator anfügen
+          lines.push({ text: formatNumber(value), color: "black", bold: false });
         } else {
+          // classicLastOp === "/"
           if (value === 0) {
             lines.push({ text: `/${value} => Division durch 0!`, color: "red", bold: false });
             currentLine = "";
@@ -258,21 +254,37 @@ function handleEnterClassic() {
           }
           let result = lastVal / value;
           classicTerms[classicTerms.length - 1] = result;
-          lines.push({ text: formatNumber(value) + "/", color: "black", bold: false });
+          // Kein Operator anfügen
+          lines.push({ text: formatNumber(value), color: "black", bold: false });
         }
       }
       classicLastOp = null;
     } else {
-      // sonst tun wir so, als wäre es +value
-      classicTerms.push(+value);
-      lines.push({ text: formatNumber(value), color: "black", bold: false });
+      // Falls der letzte Operator + oder - ist, den Operator beibehalten
+      if (classicLastOp === "+" || classicLastOp === "-") {
+        // Den Wert mit dem Operator anfügen
+        const operatorColor = (classicLastOp === "-") ? "red" : "black";
+        lines.push({ text: formatNumber(value) + classicLastOp, color: operatorColor, bold: false });
+        // Den Wert entsprechend dem Operator hinzufügen
+        if (classicLastOp === "-") {
+          classicTerms.push(-value);
+        } else {
+          classicTerms.push(+value);
+        }
+      } else {
+        // Kein vorheriger Operator, einfach den Wert hinzufügen
+        classicTerms.push(+value);
+        lines.push({ text: formatNumber(value), color: "black", bold: false });
+      }
     }
   }
+  
   // Summieren
   let totalSum = classicTerms.reduce((acc, val) => acc + val, 0);
   let finalColor = (totalSum < 0 ? "red" : "black");
   lines.push({ text: formatNumber(totalSum), color: finalColor, bold: true });
   lines.push({ text: "", color: "black", bold: false });
+  
   // Reset
   currentLine = "";
   classicTerms = [];
