@@ -67,7 +67,7 @@
       word-wrap: break-word;
       margin: 0;
       font-family: Consolas, monospace;
-      font-size: 16px;
+      font-size: 20px;
       line-height: 1.2;
       color: #000000;
     }
@@ -132,6 +132,8 @@
       gap: 5px;
       margin-top: 10px;
     }
+    /* Entfernte CSS-Klassen für die Zahlen- und Dezimalbuttons */
+    /*
     .numbers-container {
       display: grid;
       grid-template-rows: repeat(4, 1fr);
@@ -139,21 +141,7 @@
       gap: 5px;
       margin-top: 10px;
     }
-    .numbers-container button {
-      background-color: #555555;
-      color: #ffffff;
-      font-size: 14px;
-      padding: 10px 0;
-      border: none;
-      border-radius: 5px;
-      transition: background-color 0.3s, transform 0.1s;
-    }
-    .numbers-container button:hover {
-      background-color: #777777;
-    }
-    .numbers-container button:active {
-      transform: scale(0.98);
-    }
+    
     .numbers-container .zero-button {
       grid-column: 1 / 3;
       background-color: #555555;
@@ -161,6 +149,7 @@
       font-size: 14px;
       padding: 10px 0;
     }
+    
     .numbers-container .decimal-button {
       grid-column: 3 / 4;
       background-color: #555555;
@@ -168,6 +157,7 @@
       font-size: 14px;
       padding: 10px 0;
     }
+    */
     .drucken-button {
       background-color: #007bff;
       color: #ffffff;
@@ -176,6 +166,28 @@
       background-color: #3399ff;
     }
     .drucken-button:active {
+      transform: scale(0.98);
+    }
+    /* Neues Styling für den Reset-Button */
+    .reset-button {
+      background-color: #ff0000; /* Roter Hintergrund */
+      color: #ffffff;
+    }
+    .reset-button:hover {
+      background-color: #ff4d4d;
+    }
+    .reset-button:active {
+      transform: scale(0.98);
+    }
+    /* Neues Styling für den Zurück-Button */
+    .zurueck-button {
+      background-color: #ff9900; /* Orange Hintergrund */
+      color: #ffffff;
+    }
+    .zurueck-button:hover {
+      background-color: #ffb84d;
+    }
+    .zurueck-button:active {
       transform: scale(0.98);
     }
     @media (max-width: 1200px) {
@@ -191,7 +203,7 @@
   </style>
 </head>
 <body>
-  <div class="header">2025 Michael Wolf @V 1.5</div>
+  <div class="header">2025 Michael Wolf @V 1.6</div>
   <h1>Tippstreifen 2.0</h1>
   <div class="main-container">
     <div class="left-panel" tabindex="0">
@@ -202,7 +214,7 @@
     </div>
     <div class="right-panel">
       <input type="text" placeholder="Name, Vorname" class="input-field">
-      <input type="password" placeholder="PIN" class="input-field">
+      <input type="text" placeholder="PIN" class="input-field">
       
       <div class="decimal-container">
         <label class="decimal-label">Nachkommastellen:</label>
@@ -225,19 +237,13 @@
         <button class="button">%</button>
       </div>
       
-      <div class="numbers-container">
-        <button class="button">7</button>
-        <button class="button">8</button>
-        <button class="button">9</button>
-        <button class="button">4</button>
-        <button class="button">5</button>
-        <button class="button">6</button>
-        <button class="button">1</button>
-        <button class="button">2</button>
-        <button class="button">3</button>
-        <button class="button zero-button">0</button>
-        <button class="button decimal-button">,</button>
-      </div>
+      <!-- Der Zurück-Button wurde hier hinzugefügt -->
+      <button class="button zurueck-button">Zurück</button>
+      
+      <!-- Der neue ENTF-Button -->
+      <button class="button reset-button">Tippstreifen zurücksetzen</button>
+      
+      <!-- Die Zahlen- und Dezimalbuttons wurden hier entfernt -->
       
       <button class="button drucken-button">Drucken</button>
     </div>

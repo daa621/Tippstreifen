@@ -36,10 +36,42 @@ let calcMode = "classic";
 const BLINK_CURSOR = "_";
 let showCursor = true;
 
-setInterval(() => {
-  showCursor = !showCursor;
+// History-Stack initialisieren
+let historyStack = [];
+
+// Funktion zum Speichern des aktuellen Zustands
+function saveState() {
+  historyStack.push({
+    lines: JSON.parse(JSON.stringify(lines)),
+    currentLine: currentLine,
+    classicTerms: JSON.parse(JSON.stringify(classicTerms)),
+    classicLastOp: classicLastOp,
+    total: total,
+    lastOperator: lastOperator,
+    calcMode: calcMode
+  });
+}
+
+// Funktion zum Wiederherstellen des letzten Zustands
+function restoreState() {
+  if (historyStack.length === 0) {
+    showStatus("Keine weiteren Schritte rückgängig!", "red");
+    return;
+  }
+  const lastState = historyStack.pop();
+  lines = lastState.lines;
+  currentLine = lastState.currentLine;
+  classicTerms = lastState.classicTerms;
+  classicLastOp = lastState.classicLastOp;
+  total = lastState.total;
+  lastOperator = lastState.lastOperator;
+  calcMode = lastState.calcMode;
+  // Aktualisiere den Modus-Select
+  const modeSelect = rightPanel.querySelector("select");
+  modeSelect.value = calcMode;
+  showStatus("Letzten Schritt rückgängig gemacht.", "blue");
   updateDisplay();
-}, 500);
+}
 
 /**
  * 5) Anzeige aktualisieren
@@ -80,22 +112,111 @@ function parseNumber(str) {
   const num = parseFloat(str.replace(",", "."));
   return { num, isPercent };
 }
+function showModal(message, onConfirm, onCancel) {
+  // Modal erstellen
+  const modalOverlay = document.createElement("div");
+  modalOverlay.style.position = "fixed";
+  modalOverlay.style.top = "0";
+  modalOverlay.style.left = "0";
+  modalOverlay.style.width = "100%";
+  modalOverlay.style.height = "100%";
+  modalOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+  modalOverlay.style.display = "flex";
+  modalOverlay.style.justifyContent = "center";
+  modalOverlay.style.alignItems = "center";
+  modalOverlay.style.zIndex = "9999";
+
+  const modalBox = document.createElement("div");
+  modalBox.style.backgroundColor = "#ffffff";
+  modalBox.style.padding = "20px";
+  modalBox.style.borderRadius = "10px";
+  modalBox.style.textAlign = "center";
+  modalBox.style.boxShadow = "0 0 15px rgba(0, 0, 0, 0.5)";
+  modalBox.style.width = "300px";
+
+  const modalMessage = document.createElement("p");
+  modalMessage.textContent = message;
+  modalMessage.style.marginBottom = "20px";
+  modalMessage.style.color = "#000000";
+
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.display = "flex";
+  buttonContainer.style.justifyContent = "space-between";
+
+  const confirmButton = document.createElement("button");
+  confirmButton.textContent = "Ja, zurücksetzen";
+  confirmButton.style.backgroundColor = "#ff0000";
+  confirmButton.style.color = "#ffffff";
+  confirmButton.style.border = "none";
+  confirmButton.style.padding = "10px";
+  confirmButton.style.borderRadius = "5px";
+  confirmButton.style.cursor = "pointer";
+  confirmButton.style.marginRight = "10px";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.textContent = "Abbrechen";
+  cancelButton.style.backgroundColor = "#007bff";
+  cancelButton.style.color = "#ffffff";
+  cancelButton.style.border = "none";
+  cancelButton.style.padding = "10px";
+  cancelButton.style.borderRadius = "5px";
+  cancelButton.style.cursor = "pointer";
+
+  buttonContainer.appendChild(confirmButton);
+  buttonContainer.appendChild(cancelButton);
+  modalBox.appendChild(modalMessage);
+  modalBox.appendChild(buttonContainer);
+  modalOverlay.appendChild(modalBox);
+  document.body.appendChild(modalOverlay);
+
+  // Event-Listener für die Buttons
+  confirmButton.addEventListener("click", () => {
+    onConfirm();
+    document.body.removeChild(modalOverlay);
+  });
+
+  cancelButton.addEventListener("click", () => {
+    if (onCancel) onCancel();
+    document.body.removeChild(modalOverlay);
+  });
+}
+
+
 
 /**
  * 7) Reset
  */
 function resetAll() {
-  lines = [];
-  currentLine = "";
-  // Classic
-  classicTerms = [];
-  classicLastOp = null;
-  // Modern
-  total = null;
-  lastOperator = null;
-  showStatus("Seite zurückgesetzt!", "blue");
-  updateDisplay();
+  showModal(
+    "Bist Du sicher, dass Du den Rechenstreifen und alle Eingaben zurücksetzen möchtest?",
+    () => {
+      // Speichere den Zustand vor dem Reset
+      saveState();
+
+      lines = [];
+      currentLine = "";
+      // Classic
+      classicTerms = [];
+      classicLastOp = null;
+      // Modern
+      total = null;
+      lastOperator = null;
+
+      // Eingabefelder für Name und PIN leeren
+      const nameInput = document.querySelector('input[placeholder="Name, Vorname"]');
+      const pinInput = document.querySelector('input[placeholder="PIN"]');
+      if (nameInput) nameInput.value = "";
+      if (pinInput) pinInput.value = "";
+
+      showStatus("Rechenstreifen zurückgesetzt!", "blue");
+      updateDisplay();
+    },
+    () => {
+      showStatus("Reset abgebrochen.", "red");
+    }
+  );
 }
+
 
 /**
  * 8) Key-Events
@@ -116,15 +237,24 @@ leftPanel.addEventListener("keydown", (ev) => {
     return;
   }
   if (key === "Backspace") {
+    // Speichere den Zustand vor dem Löschen
+    saveState();
+    
     currentLine = currentLine.slice(0, -1);
     updateDisplay();
     return;
   }
   if (["+", "-", "*", "/"].includes(key)) {
+    // Speichere den Zustand vor dem Operator
+    saveState();
+    
     handleOperator(key);
     return;
   }
   if (/[0-9,%.]/.test(key)) {
+    // Speichere den Zustand vor der Eingabe
+    saveState();
+    
     if (key === ".") {
       if (!currentLine.includes(",")) {
         currentLine += ",";
@@ -147,6 +277,9 @@ leftPanel.addEventListener("keydown", (ev) => {
  * * / / => erst beim nächsten Wert
  */
 function handleOperatorClassic(op) {
+  // Speichere den Zustand vor dem Operator
+  saveState();
+  
   const trim = currentLine.trim();
   if (!trim) {
     // Kein Wert => merken wir uns nur den Operator
@@ -169,13 +302,13 @@ function handleOperatorClassic(op) {
     if (classicTerms.length === 0) {
       // Kein Summand => pushen
       classicTerms.push(value);
-      lines.push({ text: formatNumber(value) + op, color: "black", bold: false }); // Änderung hier
+      lines.push({ text: formatNumber(value) + op, color: "black", bold: false });
     } else {
       let lastVal = classicTerms[classicTerms.length - 1];
       if (classicLastOp === "*") {
         let result = lastVal * value;
         classicTerms[classicTerms.length - 1] = result;
-        lines.push({ text: formatNumber(value) + op, color: "black", bold: false }); // Änderung hier
+        lines.push({ text: formatNumber(value) + op, color: "black", bold: false });
       } else {
         // classicLastOp === "/"
         if (value === 0) {
@@ -186,7 +319,7 @@ function handleOperatorClassic(op) {
         }
         let result = lastVal / value;
         classicTerms[classicTerms.length - 1] = result;
-        lines.push({ text: formatNumber(value) + op, color: "black", bold: false }); // Änderung hier
+        lines.push({ text: formatNumber(value) + op, color: "black", bold: false });
       }
     }
     // Operation verbraucht
@@ -224,6 +357,9 @@ function handleOperatorClassic(op) {
 }
 
 function handleEnterClassic() {
+  // Speichere den Zustand vor dem Enter
+  saveState();
+  
   const trim = currentLine.trim();
   const { num, isPercent } = parseNumber(trim);
   
@@ -296,6 +432,9 @@ function handleEnterClassic() {
  * 10) MODERN
  */
 function handleOperatorModern(op) {
+  // Speichere den Zustand vor dem Operator
+  saveState();
+  
   const { num, isPercent } = parseNumber(currentLine.trim());
   if (!currentLine.trim() || isNaN(num)) {
     lastOperator = op;
@@ -352,6 +491,9 @@ function handleOperatorModern(op) {
 }
 
 function handleEnterModern() {
+  // Speichere den Zustand vor dem Enter
+  saveState();
+  
   const { num, isPercent } = parseNumber(currentLine.trim());
   if (currentLine.trim() !== "" && !isNaN(num)) {
     let value = num;
@@ -396,7 +538,6 @@ function handleEnterModern() {
   lines.push({ text: formatNumber(total), color: finalColor, bold: true });
   lines.push({ text: "", color: "black", bold: false });
   lastOperator = null;
-  currentLine = "";
   total = null;
   updateDisplay();
 }
@@ -430,6 +571,9 @@ const pinInput = rightPanel.querySelector('input[type="password"]');
 // Modus-Auswahl
 const modeSelect = rightPanel.querySelector("select");
 modeSelect.addEventListener("change", () => {
+  // Speichere den Zustand vor dem Moduswechsel
+  saveState();
+  
   calcMode = modeSelect.value;
   // Reset
   classicTerms = [];
@@ -446,29 +590,49 @@ modeSelect.addEventListener("change", () => {
 const operatorButtons = rightPanel.querySelectorAll(".operator-container .button");
 operatorButtons.forEach(button => {
   button.addEventListener("click", () => {
+    // Speichere den Zustand vor dem Operator
+    saveState();
+    
     const op = button.innerText;
     handleOperator(op);
     leftPanel.focus();
   });
 });
 
-// Numerische Buttons
-const numbersContainer = rightPanel.querySelector(".numbers-container");
-const numberButtons = numbersContainer.querySelectorAll("button");
-numberButtons.forEach(button => {
-  button.addEventListener("click", () => {
-    const num = button.innerText;
-    if (num === ",") {
-      if (!currentLine.includes(",")) {
-        currentLine += ",";
-      }
-    } else {
-      currentLine += num;
-    }
-    updateDisplay();
-    leftPanel.focus();
-  });
+// Reset-Button
+const resetButton = rightPanel.querySelector(".reset-button");
+resetButton.addEventListener("click", () => {
+  resetAll();
+  leftPanel.focus();
 });
+
+// Zurück-Button
+const zurueckButton = rightPanel.querySelector(".zurueck-button");
+zurueckButton.addEventListener("click", () => {
+  restoreState();
+  leftPanel.focus();
+});
+
+/*
+Numerische Buttons wurden entfernt
+// Numerische Buttons wurden entfernt
+// const numbersContainer = rightPanel.querySelector(".numbers-container");
+// const numberButtons = numbersContainer.querySelectorAll("button");
+// numberButtons.forEach(button => {
+//   button.addEventListener("click", () => {
+//     const num = button.innerText;
+//     if (num === ",") {
+//       if (!currentLine.includes(",")) {
+//         currentLine += ",";
+//       }
+//     } else {
+//       currentLine += num;
+//     }
+//     updateDisplay();
+//     leftPanel.focus();
+//   });
+// });
+*/
 
 // Drucken-Button
 const druckenButton = rightPanel.querySelector(".drucken-button");
@@ -497,7 +661,7 @@ druckenButton.addEventListener("click", () => {
           line-height: 1.2;
           background-color: #ffffff;
           color: #000000;
-          font-size: 10px; /* Gesamte Schriftgröße auf 10px gesetzt */
+          font-size: 12px; /* Gesamte Schriftgröße auf 12px gesetzt */
         }
         .container {
           max-width: 800px;
@@ -511,7 +675,7 @@ druckenButton.addEventListener("click", () => {
           padding: 0px 8px; /* Vertikales Padding auf 0, horizontales bleibt 8px */
           border: none; /* Alle Rahmen entfernen */
           font-family: 'Courier New', monospace;
-          font-size: 10px; /* Schriftgröße auf 10px gesetzt */
+          font-size: 12px; /* Schriftgröße auf 12px gesetzt */
           vertical-align: top;
         }
         th {
@@ -520,7 +684,7 @@ druckenButton.addEventListener("click", () => {
         }
         .rechnung-text {
           text-align: right;
-          padding-right: 10px;
+          padding-right: 12px;
         }
         .user-input {
           width: 70%;
@@ -530,7 +694,7 @@ druckenButton.addEventListener("click", () => {
           padding: 4px;
           border: 1px solid #ccc;
           border-radius: 3px;
-          font-size: 10px; /* Schriftgröße auf 10px gesetzt */
+          font-size: 12px; /* Schriftgröße auf 12px gesetzt */
           box-sizing: border-box;
         }
         tr:hover {
@@ -541,7 +705,7 @@ druckenButton.addEventListener("click", () => {
           border-collapse: collapse;
         }
         h2, p {
-          font-size: 10px; /* Schriftgröße für Überschriften und Absätze auf 10px gesetzt */
+          font-size: 12px; /* Schriftgröße für Überschriften und Absätze auf 12px gesetzt */
         }
       </style>
     </head>
