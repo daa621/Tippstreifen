@@ -664,112 +664,134 @@ druckenButton.addEventListener("click", () => {
   const nameValue = nameInput.value.trim() || "Unbekannt";
   const pinValue = pinInput.value.trim() || "Nicht angegeben";
   const now = new Date();
-  const dateString = now.toLocaleDateString("de-DE");
+  const dateString = now.toISOString().split("T")[0];
   const timeString = now.toLocaleTimeString("de-DE");
   
-  const rechenstreifenContent = lines.map(line => {
-    return `
-      <tr>
-        <td class="rechnung-text">${line.text.trim()}</td>
-        <td class="user-input"><input type="text" name="note" /></td>
-      </tr>`;
-  }).join("");
+ const rechenstreifenContent = lines.map(line => {
+  // Überprüfe, ob die Zeile fett dargestellt werden soll
+  const lineText = line.bold ? `<strong>${line.text.trim()}</strong>` : line.text.trim();
+  return `
+    <tr>
+      <td class="rechnung-text">${lineText}</td>
+      <td class="user-input"><input type="text" name="note" /></td>
+    </tr>`;
+}).join("");
 
-  const printContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Druckansicht</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 20px;
-          line-height: 1.2;
-          background-color: #ffffff;
-          color: #000000;
-          font-size: 12px;
-        }
-        .container {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        th, td {
-          padding: 0px 8px;
-          border: none;
-          font-family: 'Courier New', monospace;
-          font-size: 12px;
-          vertical-align: top;
-        }
-        th {
-          text-align: left;
-          background-color: #f9f9f9;
-        }
-        .rechnung-text {
-          text-align: right;
-          padding-right: 12px;
-        }
-        .user-input {
-          width: 70%;
-        }
-        .user-input input {
-          width: 100%;
-          padding: 4px;
-          border: 1px solid #ccc;
-          border-radius: 3px;
-          font-size: 12px;
-          box-sizing: border-box;
-        }
-        tr:hover {
-          background-color: #f1f1f1;
-        }
-        table, tr, td, th {
-          border-spacing: 0;
-          border-collapse: collapse;
-        }
-        h2, p {
-          font-size: 12px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h2>Tippstreifen 2.0 - Berechnung</h2>
-        <p><strong>Name:</strong> ${nameValue}</p>
-        <p><strong>PIN:</strong> ${pinValue}</p>
-        <p><strong>Datum:</strong> ${dateString} ${timeString}</p>
-        <br>
-        <table>
-          <thead>
-            <tr>
-              <th>Berechnung</th>
-              <th>Notizen</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rechenstreifenContent}
-          </tbody>
-        </table>
-      </div>
-    </body>
-    </html>
-  `;
+const printContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Druckansicht</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.0;
+      background-color: #ffffff;
+      color: #000000;
+      font-size: 12px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 0px 8px;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      vertical-align: center;
+    }
+    th {
+      text-align: left;
+      background-color: #f9f9f9;
+    }
+    .rechnung-text {
+      text-align: right;
+      padding-right: 12px;
+    }
+    .user-input {
+      width: 70%;
+    }
+    .user-input input {
+      width: 100%;
+      padding: 4px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    table, tr, td, th {
+      border-spacing: 0;
+      border-collapse: collapse;
+    }
+    h2, p {
+      font-size: 12px;
+    }
+    strong {
+      font-weight: bold;
+    }
+    .print-button {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .print-button button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .print-button button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Tippstreifen 2.0 - Berechnung</h2>
+    <p><strong>Name:</strong> ${nameValue}</p>
+    <p><strong>PIN:</strong> ${pinValue}</p>
+    <p><strong>Datum:</strong> ${dateString} ${timeString}</p>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th>Berechnung</th>
+          <th>Notizen</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rechenstreifenContent}
+      </tbody>
+    </table>
+    <div class="print-button">
+      <button onclick="window.print();">Drucken</button>
+    </div>
+  </div>
+</body>
+</html>
+`;
 
-  // Debugging: Ausgabe des generierten HTML-Inhalts in der Konsole
-  console.log("Print Content:", printContent);
 
-  // Schreiben des Inhalts in das neue Fenster
-  newWindow.document.open();
-  newWindow.document.write(printContent);
-  newWindow.document.close();
+// Schreibe den Inhalt ins neue Fenster
+newWindow.document.open();
+newWindow.document.write(printContent);
+newWindow.document.close();
 
   // Sicherstellen, dass das neue Fenster vollständig geladen ist, bevor der Druckdialog geöffnet wird
   newWindow.onload = function() {
     newWindow.focus();
-    newWindow.print();
+    
   };
 });
 
