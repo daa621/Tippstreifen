@@ -41,7 +41,7 @@ let historyStack = [];
 
 // Funktion zum Speichern des aktuellen Zustands
 function saveState() {
-  historyStack.push({
+  const state = {
     lines: JSON.parse(JSON.stringify(lines)),
     currentLine: currentLine,
     classicTerms: JSON.parse(JSON.stringify(classicTerms)),
@@ -49,7 +49,10 @@ function saveState() {
     total: total,
     lastOperator: lastOperator,
     calcMode: calcMode
-  });
+  };
+  historyStack.push(state);
+  console.log("State saved:", state);
+  console.log("History Stack:", historyStack);
 }
 
 // Funktion zum Wiederherstellen des letzten Zustands
@@ -59,6 +62,7 @@ function restoreState() {
     return;
   }
   const lastState = historyStack.pop();
+  console.log("Restoring state:", lastState);
   lines = lastState.lines;
   currentLine = lastState.currentLine;
   classicTerms = lastState.classicTerms;
@@ -71,6 +75,7 @@ function restoreState() {
   modeSelect.value = calcMode;
   showStatus("Letzten Schritt rückgängig gemacht.", "blue");
   updateDisplay();
+  console.log("Current lines after restore:", lines);
 }
 
 /**
@@ -112,6 +117,7 @@ function parseNumber(str) {
   const num = parseFloat(str.replace(",", "."));
   return { num, isPercent };
 }
+
 function showModal(message, onConfirm, onCancel) {
   // Modal erstellen
   const modalOverlay = document.createElement("div");
@@ -181,8 +187,6 @@ function showModal(message, onConfirm, onCancel) {
   });
 }
 
-
-
 /**
  * 7) Reset
  */
@@ -216,7 +220,6 @@ function resetAll() {
     }
   );
 }
-
 
 /**
  * 8) Key-Events
@@ -634,23 +637,46 @@ Numerische Buttons wurden entfernt
 // });
 */
 
-// Drucken-Button
 const druckenButton = rightPanel.querySelector(".drucken-button");
 druckenButton.addEventListener("click", () => {
+  console.log("Lines before printing:", lines); // Debugging
+
+  if (lines.length === 0) {
+    alert("Es gibt keine Daten zum Drucken.");
+    return;
+  }
+
   const newWindow = window.open("", "_blank", "width=800,height=600");
+  if (!newWindow) {
+    alert("Pop-up-Fenster wurde blockiert. Bitte erlaube Pop-ups für diese Seite.");
+    return;
+  }
+
+  const nameInput = rightPanel.querySelector('input[placeholder="Name, Vorname"]');
+  const pinInput = rightPanel.querySelector('input[placeholder="PIN"]');
+
+  if (!nameInput || !pinInput) {
+    alert("Name- oder PIN-Feld konnte nicht gefunden werden.");
+    console.error("nameInput:", nameInput, "pinInput:", pinInput);
+    return;
+  }
+
   const nameValue = nameInput.value.trim() || "Unbekannt";
   const pinValue = pinInput.value.trim() || "Nicht angegeben";
   const now = new Date();
   const dateString = now.toLocaleDateString("de-DE");
   const timeString = now.toLocaleTimeString("de-DE");
+  
   const rechenstreifenContent = lines.map(line => {
     return `
-    <tr>
-      <td class="rechnung-text">${line.text.trim()}</td>
-      <td class="user-input"><input type="text" name="note" /></td>
-    </tr>`;
+      <tr>
+        <td class="rechnung-text">${line.text.trim()}</td>
+        <td class="user-input"><input type="text" name="note" /></td>
+      </tr>`;
   }).join("");
-  newWindow.document.write(`
+
+  const printContent = `
+    <!DOCTYPE html>
     <html>
     <head>
       <title>Druckansicht</title>
@@ -661,7 +687,7 @@ druckenButton.addEventListener("click", () => {
           line-height: 1.2;
           background-color: #ffffff;
           color: #000000;
-          font-size: 12px; /* Gesamte Schriftgröße auf 12px gesetzt */
+          font-size: 12px;
         }
         .container {
           max-width: 800px;
@@ -672,10 +698,10 @@ druckenButton.addEventListener("click", () => {
           border-collapse: collapse;
         }
         th, td {
-          padding: 0px 8px; /* Vertikales Padding auf 0, horizontales bleibt 8px */
-          border: none; /* Alle Rahmen entfernen */
+          padding: 0px 8px;
+          border: none;
           font-family: 'Courier New', monospace;
-          font-size: 12px; /* Schriftgröße auf 12px gesetzt */
+          font-size: 12px;
           vertical-align: top;
         }
         th {
@@ -694,7 +720,7 @@ druckenButton.addEventListener("click", () => {
           padding: 4px;
           border: 1px solid #ccc;
           border-radius: 3px;
-          font-size: 12px; /* Schriftgröße auf 12px gesetzt */
+          font-size: 12px;
           box-sizing: border-box;
         }
         tr:hover {
@@ -705,7 +731,7 @@ druckenButton.addEventListener("click", () => {
           border-collapse: collapse;
         }
         h2, p {
-          font-size: 12px; /* Schriftgröße für Überschriften und Absätze auf 12px gesetzt */
+          font-size: 12px;
         }
       </style>
     </head>
@@ -730,8 +756,21 @@ druckenButton.addEventListener("click", () => {
       </div>
     </body>
     </html>
-  `);
+  `;
+
+  // Debugging: Ausgabe des generierten HTML-Inhalts in der Konsole
+  console.log("Print Content:", printContent);
+
+  // Schreiben des Inhalts in das neue Fenster
+  newWindow.document.open();
+  newWindow.document.write(printContent);
   newWindow.document.close();
+
+  // Sicherstellen, dass das neue Fenster vollständig geladen ist, bevor der Druckdialog geöffnet wird
+  newWindow.onload = function() {
+    newWindow.focus();
+    newWindow.print();
+  };
 });
 
 /**
