@@ -194,9 +194,7 @@ function resetAll() {
   showModal(
     "Bist Du sicher, dass Du den Rechenstreifen und alle Eingaben zurücksetzen möchtest?",
     () => {
-      // Speichere den Zustand vor dem Reset
       saveState();
-
       lines = [];
       currentLine = "";
       // Classic
@@ -205,13 +203,11 @@ function resetAll() {
       // Modern
       total = null;
       lastOperator = null;
-
-      // Eingabefelder für Name und PIN leeren
+      // Eingabefelder leeren
       const nameInput = document.querySelector('input[placeholder="Name, Vorname"]');
       const pinInput = document.querySelector('input[placeholder="PIN"]');
       if (nameInput) nameInput.value = "";
       if (pinInput) pinInput.value = "";
-
       showStatus("Rechenstreifen zurückgesetzt!", "blue");
       updateDisplay();
     },
@@ -240,24 +236,18 @@ leftPanel.addEventListener("keydown", (ev) => {
     return;
   }
   if (key === "Backspace") {
-    // Speichere den Zustand vor dem Löschen
     saveState();
-    
     currentLine = currentLine.slice(0, -1);
     updateDisplay();
     return;
   }
   if (["+", "-", "*", "/"].includes(key)) {
-    // Speichere den Zustand vor dem Operator
     saveState();
-    
     handleOperator(key);
     return;
   }
   if (/[0-9,%.]/.test(key)) {
-    // Speichere den Zustand vor der Eingabe
     saveState();
-    
     if (key === ".") {
       if (!currentLine.includes(",")) {
         currentLine += ",";
@@ -276,16 +266,11 @@ leftPanel.addEventListener("keydown", (ev) => {
 
 /**
  * 9) CLASSIC
- * + / - => sofort
- * * / / => erst beim nächsten Wert
  */
 function handleOperatorClassic(op) {
-  // Speichere den Zustand vor dem Operator
   saveState();
-  
   const trim = currentLine.trim();
   if (!trim) {
-    // Kein Wert => merken wir uns nur den Operator
     classicLastOp = op;
     return;
   }
@@ -298,12 +283,9 @@ function handleOperatorClassic(op) {
   }
   let value = num;
   if (isPercent) value /= 100;
-  // Flag, ob wir diese "value" schon mit * oder / verarbeitet haben
   let usedThisNumber = false;
-  // 1) Falls wir noch * / offen haben => wende es JETZT an
   if (classicLastOp === "*" || classicLastOp === "/") {
     if (classicTerms.length === 0) {
-      // Kein Summand => pushen
       classicTerms.push(value);
       lines.push({ text: formatNumber(value) + op, color: "black", bold: false });
     } else {
@@ -313,7 +295,6 @@ function handleOperatorClassic(op) {
         classicTerms[classicTerms.length - 1] = result;
         lines.push({ text: formatNumber(value) + op, color: "black", bold: false });
       } else {
-        // classicLastOp === "/"
         if (value === 0) {
           lines.push({ text: `${formatNumber(lastVal)}/0 => Division durch 0!`, color: "red", bold: false });
           currentLine = "";
@@ -325,11 +306,9 @@ function handleOperatorClassic(op) {
         lines.push({ text: formatNumber(value) + op, color: "black", bold: false });
       }
     }
-    // Operation verbraucht
     classicLastOp = null;
-    usedThisNumber = true; // Wir haben "value" in * / verarbeitet
+    usedThisNumber = true;
   }
-  // 2) Neuer Operator => falls wir "value" noch nicht benutzt haben
   if (!usedThisNumber) {
     if (op === "+") {
       classicTerms.push(+value);
@@ -348,11 +327,9 @@ function handleOperatorClassic(op) {
       }
     }
   }
-  // 3) Falls op * / => wir merken uns das
   if (op === "*" || op === "/") {
     classicLastOp = op;
   } else {
-    // + oder -
     classicLastOp = null;
   }
   currentLine = "";
@@ -360,31 +337,23 @@ function handleOperatorClassic(op) {
 }
 
 function handleEnterClassic() {
-  // Speichere den Zustand vor dem Enter
   saveState();
-  
   const trim = currentLine.trim();
   const { num, isPercent } = parseNumber(trim);
-  
   if (!isNaN(num) && trim !== "") {
     let value = num;
     if (isPercent) value /= 100;
-    
-    // Falls noch * / offen => wende sie jetzt an
     if (classicLastOp === "*" || classicLastOp === "/") {
       if (classicTerms.length === 0) {
         classicTerms.push(value);
-        // Kein Operator anfügen
         lines.push({ text: formatNumber(value), color: "black", bold: false });
       } else {
         let lastVal = classicTerms[classicTerms.length - 1];
         if (classicLastOp === "*") {
           let result = lastVal * value;
           classicTerms[classicTerms.length - 1] = result;
-          // Kein Operator anfügen
           lines.push({ text: formatNumber(value), color: "black", bold: false });
         } else {
-          // classicLastOp === "/"
           if (value === 0) {
             lines.push({ text: `/${value} => Division durch 0!`, color: "red", bold: false });
             currentLine = "";
@@ -393,38 +362,29 @@ function handleEnterClassic() {
           }
           let result = lastVal / value;
           classicTerms[classicTerms.length - 1] = result;
-          // Kein Operator anfügen
           lines.push({ text: formatNumber(value), color: "black", bold: false });
         }
       }
       classicLastOp = null;
     } else {
-      // Falls der letzte Operator + oder - ist, den Operator beibehalten
       if (classicLastOp === "+" || classicLastOp === "-") {
-        // Den Wert mit dem Operator anfügen
         const operatorColor = (classicLastOp === "-") ? "red" : "black";
         lines.push({ text: formatNumber(value) + classicLastOp, color: operatorColor, bold: false });
-        // Den Wert entsprechend dem Operator hinzufügen
         if (classicLastOp === "-") {
           classicTerms.push(-value);
         } else {
           classicTerms.push(+value);
         }
       } else {
-        // Kein vorheriger Operator, einfach den Wert hinzufügen
         classicTerms.push(+value);
         lines.push({ text: formatNumber(value), color: "black", bold: false });
       }
     }
   }
-  
-  // Summieren
   let totalSum = classicTerms.reduce((acc, val) => acc + val, 0);
   let finalColor = (totalSum < 0 ? "red" : "black");
   lines.push({ text: formatNumber(totalSum), color: finalColor, bold: true });
   lines.push({ text: "", color: "black", bold: false });
-  
-  // Reset
   currentLine = "";
   classicTerms = [];
   classicLastOp = null;
@@ -435,9 +395,7 @@ function handleEnterClassic() {
  * 10) MODERN
  */
 function handleOperatorModern(op) {
-  // Speichere den Zustand vor dem Operator
   saveState();
-  
   const { num, isPercent } = parseNumber(currentLine.trim());
   if (!currentLine.trim() || isNaN(num)) {
     lastOperator = op;
@@ -494,9 +452,7 @@ function handleOperatorModern(op) {
 }
 
 function handleEnterModern() {
-  // Speichere den Zustand vor dem Enter
   saveState();
-  
   const { num, isPercent } = parseNumber(currentLine.trim());
   if (currentLine.trim() !== "" && !isNaN(num)) {
     let value = num;
@@ -574,11 +530,8 @@ const pinInput = rightPanel.querySelector('input[type="password"]');
 // Modus-Auswahl
 const modeSelect = rightPanel.querySelector("select");
 modeSelect.addEventListener("change", () => {
-  // Speichere den Zustand vor dem Moduswechsel
   saveState();
-  
   calcMode = modeSelect.value;
-  // Reset
   classicTerms = [];
   classicLastOp = null;
   total = null;
@@ -593,9 +546,7 @@ modeSelect.addEventListener("change", () => {
 const operatorButtons = rightPanel.querySelectorAll(".operator-container .button");
 operatorButtons.forEach(button => {
   button.addEventListener("click", () => {
-    // Speichere den Zustand vor dem Operator
     saveState();
-    
     const op = button.innerText;
     handleOperator(op);
     leftPanel.focus();
@@ -616,182 +567,244 @@ zurueckButton.addEventListener("click", () => {
   leftPanel.focus();
 });
 
-/*
-Numerische Buttons wurden entfernt
-// Numerische Buttons wurden entfernt
-// const numbersContainer = rightPanel.querySelector(".numbers-container");
-// const numberButtons = numbersContainer.querySelectorAll("button");
-// numberButtons.forEach(button => {
-//   button.addEventListener("click", () => {
-//     const num = button.innerText;
-//     if (num === ",") {
-//       if (!currentLine.includes(",")) {
-//         currentLine += ",";
-//       }
-//     } else {
-//       currentLine += num;
-//     }
-//     updateDisplay();
-//     leftPanel.focus();
-//   });
-// });
-*/
-
 const druckenButton = rightPanel.querySelector(".drucken-button");
 druckenButton.addEventListener("click", () => {
-  console.log("Lines before printing:", lines); // Debugging
-
+  console.log("Lines before printing:", lines);
   if (lines.length === 0) {
     alert("Es gibt keine Daten zum Drucken.");
     return;
   }
-
   const newWindow = window.open("", "_blank", "width=800,height=600");
   if (!newWindow) {
     alert("Pop-up-Fenster wurde blockiert. Bitte erlaube Pop-ups für diese Seite.");
     return;
   }
-
   const nameInput = rightPanel.querySelector('input[placeholder="Name, Vorname"]');
   const pinInput = rightPanel.querySelector('input[placeholder="PIN"]');
-
   if (!nameInput || !pinInput) {
     alert("Name- oder PIN-Feld konnte nicht gefunden werden.");
     console.error("nameInput:", nameInput, "pinInput:", pinInput);
     return;
   }
-
   const nameValue = nameInput.value.trim() || "Unbekannt";
   const pinValue = pinInput.value.trim() || "Nicht angegeben";
   const now = new Date();
   const dateString = now.toISOString().split("T")[0];
   const timeString = now.toLocaleTimeString("de-DE");
   
- const rechenstreifenContent = lines.map(line => {
-  // Überprüfe, ob die Zeile fett dargestellt werden soll
-  const lineText = line.bold ? `<strong>${line.text.trim()}</strong>` : line.text.trim();
-  return `
+  const rechenstreifenContent = lines.map(line => {
+    const lineText = line.bold ? `<strong>${line.text.trim()}</strong>` : line.text.trim();
+    return `
+      <tr>
+        <td class="rechnung-text">${lineText}</td>
+        <td class="user-input"><input type="text" name="note" /></td>
+      </tr>`;
+  }).join("");
+  
+  // Zusätzliche Zeilen im Druckbereich:
+  // 1. DE-Zeile mit Dropdown (Namensauswahl)
+  // 2. DF-Zeile: Spalte A: "DF" in Arial fett, Spalte B: ein leeres Textfeld
+  // 3. Eine Leerzeile
+  // 4. Eine Zeile, in der in Spalte A ein Dropdown (ID "akteTypeDropdown") mit den Optionen "zur GH-Akte" und "zur Pers-Akte" steht.
+  //    In Spalte B (Container mit ID "akteOptionsContainer") wird per JS dynamisch das passende Dropdown bzw. ein Eingabefeld (bei "zur Pers-Akte") eingefügt.
+  // 5. Eine weitere Zeile, in der in Spalte A "Bezeichnung" (Arial, fett) steht und in Spalte B ein leeres Textfeld angezeigt wird.
+  const additionalRows = `
     <tr>
-      <td class="rechnung-text">${lineText}</td>
-      <td class="user-input"><input type="text" name="note" /></td>
-    </tr>`;
-}).join("");
-
-const printContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Druckansicht</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      line-height: 1.0;
-      background-color: #ffffff;
-      color: #000000;
-      font-size: 12px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 0px 8px;
-      border: none;
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      vertical-align: center;
-    }
-    th {
-      text-align: left;
-      background-color: #f9f9f9;
-    }
-    .rechnung-text {
-      text-align: right;
-      padding-right: 12px;
-    }
-    .user-input {
-      width: 70%;
-    }
-    .user-input input {
-      width: 100%;
-      padding: 4px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      font-size: 12px;
-      box-sizing: border-box;
-    }
-    tr:hover {
-      background-color: #f1f1f1;
-    }
-    table, tr, td, th {
-      border-spacing: 0;
-      border-collapse: collapse;
-    }
-    h2, p {
-      font-size: 12px;
-    }
-    strong {
-      font-weight: bold;
-    }
-    .print-button {
-      margin-top: 20px;
-      text-align: center;
-    }
-    .print-button button {
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .print-button button:hover {
-      background-color: #0056b3;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Tippstreifen 2.0 - Berechnung</h2>
-    <p><strong>Name:</strong> ${nameValue}</p>
-    <p><strong>PIN:</strong> ${pinValue}</p>
-    <p><strong>Datum:</strong> ${dateString} ${timeString}</p>
-    <br>
-    <table>
-      <thead>
-        <tr>
-          <th>Berechnung</th>
-          <th>Notizen</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rechenstreifenContent}
-      </tbody>
-    </table>
-    <div class="print-button">
-      <button onclick="window.print();">Drucken</button>
+      <td class="rechnung-text"><span style="font-family: Arial; font-weight: bold;">DE</span></td>
+      <td class="user-input">
+        <select name="dropdown_names">
+          <option value="Albert Dietmar">Albert Dietmar</option>
+          <option value="Büttner Martin">Büttner Martin</option>
+          <option value="Dörfler Laura">Dörfler Laura</option>
+          <option value="Fraunholz Franziska">Fraunholz Franziska</option>
+          <option value="Ganzleben Bernd">Ganzleben Bernd</option>
+          <option value="Heieis Anika">Heieis Anika</option>
+          <option value="Rösler Andreas">Rösler Andreas</option>
+          <option value="Schmidt Monika">Schmidt Monika</option>
+          <option value="Schiweck Daniela">Schiweck Daniela</option>
+          <option value="Wolf Michael">Wolf Michael</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td class="rechnung-text"><span style="font-family: Arial; font-weight: bold;">DF</span></td>
+      <td class="user-input"><input type="text" name="df_field" /></td>
+    </tr>
+    <tr>
+      <td class="rechnung-text">&nbsp;</td>
+      <td class="user-input">&nbsp;</td>
+    </tr>
+    <tr>
+      <td class="rechnung-text">
+        <select id="akteTypeDropdown" name="dropdown_akte">
+          <option value="GH">zur GH-Akte</option>
+          <option value="Pers">zur Pers-Akte</option>
+        </select>
+      </td>
+      <td class="user-input" id="akteOptionsContainer"></td>
+    </tr>
+    <tr>
+      <td class="rechnung-text"><span style="font-family: Arial; font-weight: bold;">Bezeichnung</span></td>
+      <td class="user-input"><input type="text" name="bezeichnung_field" /></td>
+    </tr>
+  `;
+  
+  const inlineScript = `
+    <script>
+      (function(){
+        function updateAkteOptions() {
+          var dropdown = document.getElementById("akteTypeDropdown");
+          var container = document.getElementById("akteOptionsContainer");
+          if(!dropdown || !container) return;
+          if(dropdown.value === "GH") {
+            container.innerHTML = '<select name="gh_options">' +
+              '<option value="00001">00001 Abschlagszahlung</option>' +
+              '<option value="00002">00002 Bankverbindung</option>' +
+              '<option value="00003">00003 Bescheinigungen</option>' +
+              '<option value="00004">00004 Mutterschutz/Beschäftigungsverbot</option>' +
+              '<option value="00005">00005 Erstattungen</option>' +
+              '<option value="00006">00006 familienbezogene Entgeltbestandteile</option>' +
+              '<option value="00007">00007 Gehaltsvorschuss</option>' +
+              '<option value="00008">00008 Krankenbezüge/EFZ</option>' +
+              '<option value="00009">00009 private Nutzung Dienst-KfZ</option>' +
+              '<option value="00010">00010 private Telefonnutzung</option>' +
+              '<option value="00011">00011 Schadensersatzansprüche</option>' +
+              '<option value="00012">00012 Sonderberechnungen</option>' +
+              '<option value="00013">00013 sonstige Abzüge</option>' +
+              '<option value="00014">00014 Sonstiges</option>' +
+              '<option value="00015">00015 SV/Berufsständische Versorgung</option>' +
+              '<option value="00016">00016 Sterbegeld</option>' +
+              '<option value="00017">00017 Steuer</option>' +
+              '<option value="00018">00018 vermögenswirksame Leistungen</option>' +
+              '<option value="00019">00019 Werkswohnung</option>' +
+              '<option value="00020">00020 ZfA</option>' +
+              '<option value="00021">00021 Zeitzuschläge</option>' +
+              '<option value="00022">00022 Zulagen/Zuschläge</option>' +
+              '<option value="00023">00023 Zusatzversorgung</option>' +
+              '</select>';
+          } else if(dropdown.value === "Pers") {
+            container.innerHTML = '<input type="text" name="pers_input" />';
+          }
+        }
+        document.getElementById("akteTypeDropdown").addEventListener("change", updateAkteOptions);
+        updateAkteOptions();
+      })();
+    <\/script>
+  `;
+  
+  const printContent = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Druckansicht</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.0;
+        background-color: #ffffff;
+        color: #000000;
+        font-size: 12px;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 0px 8px;
+        border: none;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        vertical-align: center;
+      }
+      th {
+        text-align: left;
+        background-color: #f9f9f9;
+      }
+      .rechnung-text {
+        text-align: right;
+        padding-right: 12px;
+      }
+      .user-input {
+        width: 70%;
+      }
+      .user-input input, .user-input select {
+        width: 100%;
+        padding: 4px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 12px;
+        box-sizing: border-box;
+      }
+      tr:hover {
+        background-color: #f1f1f1;
+      }
+      table, tr, td, th {
+        border-spacing: 0;
+        border-collapse: collapse;
+      }
+      h2, p {
+        font-size: 12px;
+      }
+      strong {
+        font-weight: bold;
+      }
+      .print-button {
+        margin-top: 20px;
+        text-align: center;
+      }
+      .print-button button {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .print-button button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Tippstreifen 2.0 - Berechnung</h2>
+      <p><strong>Name:</strong> ${nameValue}</p>
+      <p><strong>PIN:</strong> ${pinValue}</p>
+      <p><strong>Datum:</strong> ${dateString} ${timeString}</p>
+      <br>
+      <table>
+        <thead>
+          <tr>
+            <th>Berechnung</th>
+            <th>Notizen</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rechenstreifenContent}
+          ${additionalRows}
+        </tbody>
+      </table>
+      <div class="print-button">
+        <button onclick="window.print();">Drucken</button>
+      </div>
     </div>
-  </div>
-</body>
-</html>
-`;
-
-
-// Schreibe den Inhalt ins neue Fenster
-newWindow.document.open();
-newWindow.document.write(printContent);
-newWindow.document.close();
-
-  // Sicherstellen, dass das neue Fenster vollständig geladen ist, bevor der Druckdialog geöffnet wird
+    ${inlineScript}
+  </body>
+  </html>
+  `;
+  
+  newWindow.document.open();
+  newWindow.document.write(printContent);
+  newWindow.document.close();
+  
   newWindow.onload = function() {
     newWindow.focus();
-    
   };
 });
 
