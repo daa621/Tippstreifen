@@ -385,9 +385,9 @@ function handleEnterClassic() {
   let finalColor = (totalSum < 0 ? "red" : "black");
   lines.push({ text: formatNumber(totalSum), color: finalColor, bold: true });
   lines.push({ text: "", color: "black", bold: false });
-  currentLine = "";
   classicTerms = [];
   classicLastOp = null;
+  currentLine = "";
   updateDisplay();
 }
 
@@ -404,11 +404,7 @@ function handleOperatorModern(op) {
     return;
   }
   if (lastOperator === null) {
-    if (isPercent) {
-      total = num / 100;
-    } else {
-      total = num;
-    }
+    total = isPercent ? num / 100 : num;
     const color = (total < 0) ? "red" : "black";
     lines.push({ text: (isPercent ? `${formatNumber(num)}%` : formatNumber(num)) + op, color, bold: false });
     lastOperator = op;
@@ -420,7 +416,7 @@ function handleOperatorModern(op) {
   if (isPercent) {
     if (lastOperator === '+' || lastOperator === '-') {
       value = total * (num / 100);
-    } else if (lastOperator === '*' || lastOperator === '/') {
+    } else {
       value = num / 100;
     }
   }
@@ -457,47 +453,40 @@ function handleEnterModern() {
   if (currentLine.trim() !== "" && !isNaN(num)) {
     let value = num;
     if (isPercent && lastOperator !== null) {
-      if (lastOperator === '+' || lastOperator === '-') {
+      if (lastOperator === "+" || lastOperator === "-") {
         value = total * (num / 100);
-      } else if (lastOperator === '*' || lastOperator === '/') {
+      } else {
         value = num / 100;
       }
     }
-    if (lastOperator !== null) {
-      switch (lastOperator) {
-        case "+":
-          total += value;
-          break;
-        case "-":
-          total -= value;
-          break;
-        case "*":
-          total *= value;
-          break;
-        case "/":
-          if (value === 0) {
-            lines.push({ text: `${currentLine} (Division durch 0!)`, color: "red", bold: false });
-            currentLine = "";
-            updateDisplay();
-            return;
-          }
-          total /= value;
-          break;
-      }
-      lines.push({ text: (isPercent ? `${formatNumber(num)}%` : formatNumber(value)) + lastOperator, color: "black", bold: false });
-    } else {
-      if (total === null) {
+    switch (lastOperator) {
+      case "+":
+        total += value;
+        break;
+      case "-":
+        total -= value;
+        break;
+      case "*":
+        total *= value;
+        break;
+      case "/":
+        if (value === 0) {
+          lines.push({ text: `${currentLine} (Division durch 0!)`, color: "red", bold: false });
+          currentLine = "";
+          updateDisplay();
+          return;
+        }
+        total /= value;
+        break;
+      default:
         total = isPercent ? num / 100 : num;
-      } else {
-        total = isPercent ? num / 100 : num;
-      }
     }
+    lines.push({ text: (isPercent ? `${formatNumber(num)}%` : formatNumber(value)) + (lastOperator || ""), color: "black", bold: false });
   }
-  const finalColor = (total < 0 ? "red" : "black");
-  lines.push({ text: formatNumber(total), color: finalColor, bold: true });
+  lines.push({ text: formatNumber(total), color: (total < 0 ? "red" : "black"), bold: true });
   lines.push({ text: "", color: "black", bold: false });
-  lastOperator = null;
   total = null;
+  lastOperator = null;
   updateDisplay();
 }
 
@@ -525,7 +514,7 @@ function handleEnter() {
  */
 const rightPanel = document.querySelector(".right-panel");
 const nameInput = rightPanel.querySelector('input[type="text"]');
-const pinInput = rightPanel.querySelector('input[type="password"]');
+const pinInput  = rightPanel.querySelector('input[type="password"]');
 
 // Modus-Auswahl
 const modeSelect = rightPanel.querySelector("select");
@@ -567,9 +556,9 @@ zurueckButton.addEventListener("click", () => {
   leftPanel.focus();
 });
 
+// Druck-Button mit neuem Header-Table
 const druckenButton = rightPanel.querySelector(".drucken-button");
 druckenButton.addEventListener("click", () => {
-  console.log("Lines before printing:", lines);
   if (lines.length === 0) {
     alert("Es gibt keine Daten zum Drucken.");
     return;
@@ -579,52 +568,28 @@ druckenButton.addEventListener("click", () => {
     alert("Pop-up-Fenster wurde blockiert. Bitte erlaube Pop-ups für diese Seite.");
     return;
   }
-  const nameInput = rightPanel.querySelector('input[placeholder="Name, Vorname"]');
-  const pinInput = rightPanel.querySelector('input[placeholder="PIN"]');
-  if (!nameInput || !pinInput) {
-    alert("Name- oder PIN-Feld konnte nicht gefunden werden.");
-    console.error("nameInput:", nameInput, "pinInput:", pinInput);
-    return;
-  }
-  const nameValue = nameInput.value.trim() || "Unbekannt";
-  const pinValue = pinInput.value.trim() || "Nicht angegeben";
+
   const now = new Date();
   const dateString = now.toISOString().split("T")[0];
   const timeString = now.toLocaleTimeString("de-DE");
-  
+
+  // Rechenstreifen-Inhalt
   const rechenstreifenContent = lines.map(line => {
-    const lineText = line.bold ? `<strong>${line.text.trim()}</strong>` : line.text.trim();
+    const lineText = line.bold
+      ? `<strong>${line.text.trim()}</strong>`
+      : line.text.trim();
     return `
       <tr>
         <td class="rechnung-text">${lineText}</td>
         <td class="user-input"><input type="text" name="note" /></td>
       </tr>`;
   }).join("");
-  
-  // Zusätzliche Zeilen im Druckbereich:
-  // 1. DE-Zeile mit Dropdown (Namensauswahl)
-  // 2. DF-Zeile: Spalte A: "DF" in Arial fett, Spalte B: ein leeres Textfeld
-  // 3. Eine Leerzeile
-  // 4. Eine Zeile, in der in Spalte A ein Dropdown (ID "akteTypeDropdown") mit den Optionen "zur GH-Akte" und "zur Pers-Akte" steht.
-  //    In Spalte B (Container mit ID "akteOptionsContainer") wird per JS dynamisch das passende Dropdown bzw. ein Eingabefeld (bei "zur Pers-Akte") eingefügt.
-  // 5. Eine weitere Zeile, in der in Spalte A "Bezeichnung" (Arial, fett) steht und in Spalte B ein leeres Textfeld angezeigt wird.
+
+  // Zusätzliche Zeilen im Druckbereich
   const additionalRows = `
     <tr>
       <td class="rechnung-text"><span style="font-family: Arial; font-weight: bold;">DE</span></td>
-      <td class="user-input">
-        <select name="dropdown_names">
-          <option value="Albert Dietmar">Albert Dietmar</option>
-          <option value="Büttner Martin">Büttner Martin</option>
-          <option value="Dörfler Laura">Dörfler Laura</option>
-          <option value="Fraunholz Franziska">Fraunholz Franziska</option>
-          <option value="Ganzleben Bernd">Ganzleben Bernd</option>
-          <option value="Heieis Anika">Heieis Anika</option>
-          <option value="Rösler Andreas">Rösler Andreas</option>
-          <option value="Schmidt Monika">Schmidt Monika</option>
-          <option value="Schiweck Daniela">Schiweck Daniela</option>
-          <option value="Wolf Michael">Wolf Michael</option>
-        </select>
-      </td>
+      <td class="user-input"><input type="text" name="de_field" /></td>
     </tr>
     <tr>
       <td class="rechnung-text"><span style="font-family: Arial; font-weight: bold;">DF</span></td>
@@ -648,41 +613,42 @@ druckenButton.addEventListener("click", () => {
       <td class="user-input"><input type="text" name="bezeichnung_field" /></td>
     </tr>
   `;
-  
+
+  // Inline-Script für das Akten-Dropdown
   const inlineScript = `
     <script>
       (function(){
         function updateAkteOptions() {
           var dropdown = document.getElementById("akteTypeDropdown");
           var container = document.getElementById("akteOptionsContainer");
-          if(!dropdown || !container) return;
-          if(dropdown.value === "GH") {
-            container.innerHTML = '<select name="gh_options">' +
-              '<option value="00001">00001 Abschlagszahlung</option>' +
-              '<option value="00002">00002 Bankverbindung</option>' +
-              '<option value="00003">00003 Bescheinigungen</option>' +
-              '<option value="00004">00004 Mutterschutz/Beschäftigungsverbot</option>' +
-              '<option value="00005">00005 Erstattungen</option>' +
-              '<option value="00006">00006 familienbezogene Entgeltbestandteile</option>' +
-              '<option value="00007">00007 Gehaltsvorschuss</option>' +
-              '<option value="00008">00008 Krankenbezüge/EFZ</option>' +
-              '<option value="00009">00009 private Nutzung Dienst-KfZ</option>' +
-              '<option value="00010">00010 private Telefonnutzung</option>' +
-              '<option value="00011">00011 Schadensersatzansprüche</option>' +
-              '<option value="00012">00012 Sonderberechnungen</option>' +
-              '<option value="00013">00013 sonstige Abzüge</option>' +
-              '<option value="00014">00014 Sonstiges</option>' +
-              '<option value="00015">00015 SV/Berufsständische Versorgung</option>' +
-              '<option value="00016">00016 Sterbegeld</option>' +
-              '<option value="00017">00017 Steuer</option>' +
-              '<option value="00018">00018 vermögenswirksame Leistungen</option>' +
-              '<option value="00019">00019 Werkswohnung</option>' +
-              '<option value="00020">00020 ZfA</option>' +
-              '<option value="00021">00021 Zeitzuschläge</option>' +
-              '<option value="00022">00022 Zulagen/Zuschläge</option>' +
-              '<option value="00023">00023 Zusatzversorgung</option>' +
-              '</select>';
-          } else if(dropdown.value === "Pers") {
+          if (!dropdown || !container) return;
+          if (dropdown.value === "GH") {
+            container.innerHTML = '<select name="gh_options">\
+<option value="00001">00001 Abschlagszahlung</option>\
+<option value="00002">00002 Bankverbindung</option>\
+<option value="00003">00003 Bescheinigungen</option>\
+<option value="00004">00004 Mutterschutz/Beschäftigungsverbot</option>\
+<option value="00005">00005 Erstattungen</option>\
+<option value="00006">00006 familienbezogene Entgeltbestandteile</option>\
+<option value="00007">00007 Gehaltsvorschuss</option>\
+<option value="00008">00008 Krankenbezüge/EFZ</option>\
+<option value="00009">00009 private Nutzung Dienst-KfZ</option>\
+<option value="00010">00010 private Telefonnutzung</option>\
+<option value="00011">00011 Schadensersatzansprüche</option>\
+<option value="00012">00012 Sonderberechnungen</option>\
+<option value="00013">00013 sonstige Abzüge</option>\
+<option value="00014">00014 Sonstiges</option>\
+<option value="00015">00015 SV/Berufsständische Versorgung</option>\
+<option value="00016">00016 Sterbegeld</option>\
+<option value="00017">00017 Steuer</option>\
+<option value="00018">00018 vermögenswirksame Leistungen</option>\
+<option value="00019">00019 Werkswohnung</option>\
+<option value="00020">00020 ZfA</option>\
+<option value="00021">00021 Zeitzuschläge</option>\
+<option value="00022">00022 Zulagen/Zuschläge</option>\
+<option value="00023">00023 Zusatzversorgung</option>\
+</select>';
+          } else {
             container.innerHTML = '<input type="text" name="pers_input" />';
           }
         }
@@ -691,7 +657,26 @@ druckenButton.addEventListener("click", () => {
       })();
     <\/script>
   `;
-  
+
+  // Neuer Header-Table für Name/PIN/Datum
+  const headerTable = `
+    <table style="width:100%; border-collapse: collapse; margin-bottom: 10px;">
+      <tr>
+        <td style="font-family: Arial; font-weight: bold; padding:4px;">Name:</td>
+        <td style="border:1px solid #ccc; padding:4px; width:70%; height:16px;"></td>
+      </tr>
+      <tr>
+        <td style="font-family: Arial; font-weight: bold; padding:4px;">PIN:</td>
+        <td style="border:1px solid #ccc; padding:4px; width:70%; height:16px;"></td>
+      </tr>
+      <tr>
+        <td style="font-family: Arial; font-weight: bold; padding:4px;">Datum:</td>
+        <td style="padding:4px;">${dateString} ${timeString}</td>
+      </tr>
+    </table>
+  `;
+
+  // Gesamtes Print-HTML
   const printContent = `
   <!DOCTYPE html>
   <html>
@@ -701,38 +686,24 @@ druckenButton.addEventListener("click", () => {
       body {
         font-family: Arial, sans-serif;
         margin: 20px;
-        line-height: 1.0;
-        background-color: #ffffff;
-        color: #000000;
+        color: #000;
         font-size: 12px;
-      }
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
       }
       table {
         width: 100%;
         border-collapse: collapse;
       }
       th, td {
-        padding: 0px 8px;
-        border: none;
+        vertical-align: middle;
         font-family: 'Courier New', monospace;
         font-size: 12px;
-        vertical-align: center;
-      }
-      th {
-        text-align: left;
-        background-color: #f9f9f9;
       }
       .rechnung-text {
         text-align: right;
         padding-right: 12px;
       }
-      .user-input {
-        width: 70%;
-      }
-      .user-input input, .user-input select {
+      .user-input input,
+      .user-input select {
         width: 100%;
         padding: 4px;
         border: 1px solid #ccc;
@@ -743,69 +714,35 @@ druckenButton.addEventListener("click", () => {
       tr:hover {
         background-color: #f1f1f1;
       }
-      table, tr, td, th {
-        border-spacing: 0;
-        border-collapse: collapse;
-      }
-      h2, p {
-        font-size: 12px;
-      }
-      strong {
-        font-weight: bold;
-      }
-      .print-button {
-        margin-top: 20px;
-        text-align: center;
-      }
-      .print-button button {
-        padding: 10px 20px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        font-size: 14px;
-        cursor: pointer;
-      }
-      .print-button button:hover {
-        background-color: #0056b3;
-      }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h2>Tippstreifen 2.0 - Berechnung</h2>
-      <p><strong>Name:</strong> ${nameValue}</p>
-      <p><strong>PIN:</strong> ${pinValue}</p>
-      <p><strong>Datum:</strong> ${dateString} ${timeString}</p>
-      <br>
-      <table>
-        <thead>
-          <tr>
-            <th>Berechnung</th>
-            <th>Notizen</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rechenstreifenContent}
-          ${additionalRows}
-        </tbody>
-      </table>
-      <div class="print-button">
-        <button onclick="window.print();">Drucken</button>
-      </div>
+    <h2>Tippstreifen 2.0 - Berechnung</h2>
+    ${headerTable}
+    <table>
+      <thead>
+        <tr>
+          <th>Berechnung</th>
+          <th>Notizen</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rechenstreifenContent}
+        ${additionalRows}
+      </tbody>
+    </table>
+    <div style="text-align:center; margin-top:20px;">
+      <button onclick="window.print();">Drucken</button>
     </div>
     ${inlineScript}
   </body>
   </html>
   `;
-  
+
   newWindow.document.open();
   newWindow.document.write(printContent);
   newWindow.document.close();
-  
-  newWindow.onload = function() {
-    newWindow.focus();
-  };
+  newWindow.onload = () => newWindow.focus();
 });
 
 /**
