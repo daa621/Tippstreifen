@@ -1,3 +1,5 @@
+(function(){
+"use strict";
 /**
  * 1) Überschrift
  */
@@ -16,7 +18,7 @@ const rechenContainer = leftPanel.querySelector(".rechen-container");
 const rechenPre = rechenContainer.querySelector("pre");
 const statusPanel = leftPanel.querySelector(".status-panel");
 
-function showStatus(msg, color = "black") {
+function showStatus(msg, color = "var(--text)") {
   statusPanel.style.color = color;
   statusPanel.innerText = msg;
 }
@@ -82,11 +84,20 @@ function restoreState() {
  * 5) Anzeige aktualisieren
  */
 function updateDisplay() {
+  // "black" is used as the default color in the calculation logic.
+  // In dark mode, pure black becomes unreadable on the tape background.
+  // We map it to a CSS variable so the UI can theme it safely.
+  const mapLineColor = (c) => {
+    if (!c) return "var(--tape-text)";
+    const s = String(c).trim().toLowerCase();
+    return (s === "black") ? "var(--tape-text)" : c;
+  };
+
   const htmlLines = lines.map(lineObj => {
-    return `<span style="color:${lineObj.color}; font-weight:${lineObj.bold ? 'bold' : 'normal'}">${lineObj.text}</span>`;
+    return `<span style="color:${mapLineColor(lineObj.color)}; font-weight:${lineObj.bold ? 'bold' : 'normal'}">${lineObj.text}</span>`;
   });
   const dispLine = currentLine + (showCursor ? BLINK_CURSOR : " ");
-  htmlLines.push(`<span style="color:black; font-weight:normal">${dispLine}</span>`);
+  htmlLines.push(`<span style="color:var(--tape-text); font-weight:normal">${dispLine}</span>`);
   rechenPre.innerHTML = htmlLines.join("\n");
   rechenContainer.scrollTop = rechenContainer.scrollHeight;
 }
@@ -750,3 +761,4 @@ druckenButton.addEventListener("click", () => {
  */
 updateDisplay();
 leftPanel.focus();
+})();

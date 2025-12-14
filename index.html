@@ -3,179 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <title>Tippstreifen 2.0</title>
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      background-color: #00008b;
-      font-family: Arial, sans-serif;
-      color: #f0f0f0;
-    }
-    .header {
-      text-align: center;
-      padding: 10px;
-      background-color: #ffffff;
-      color: #000000;
-      font-size: 14px;
-      font-weight: bold;
-      border-bottom: 1px solid #ccc;
-    }
-    h1 {
-      width: 100%;
-      text-align: center;
-      font-size: 3rem;
-      color: orange;
-      margin: 20px 0;
-      animation: colorFlash 2s infinite alternate;
-    }
-    @keyframes colorFlash {
-      0% { color: orange; }
-      100% { color: white; }
-    }
-    .main-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 20px;
-      flex: 1;
-      box-sizing: border-box;
-    }
-    .left-panel {
-      background-color: #ffffff;
-      width: 30%;
-      height: 75%;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      border-radius: 10px;
-      cursor: text;
-    }
-    .left-panel:focus {
-      outline: none;
-    }
-    .rechen-container {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      margin-bottom: 20px;
-    }
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      font-size: 20px;
-      line-height: 1.2;
-      color: #000000;
-    }
-    .status-panel {
-      height: 30px;
-      overflow: hidden;
-      padding: 5px 10px;
-      background-color: #f0f0f0;
-      font-weight: bold;
-      border-radius: 5px;
-      color: #000000;
-    }
-    .right-panel {
-      background-color: #ffffff;
-      width: 45%;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    .input-field {
-      font-size: 16px;
-      padding: 10px;
-      width: 100%;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
-      background-color: #f9f9f9;
-      color: #000000;
-    }
-    .input-field::placeholder {
-      color: #a0a0a0;
-    }
-    .decimal-label, .mode-label {
-      color: #000000;
-      font-size: 16px;
-      margin-bottom: 5px;
-    }
-    .button {
-      font-size: 14px;
-      padding: 10px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background-color: #ff8c00;
-      color: #ffffff;
-      transition: background-color 0.3s, transform 0.1s;
-      margin: 2px;
-      box-sizing: border-box;
-    }
-    .button:hover {
-      background-color: #ffa733;
-    }
-    .button:active {
-      transform: scale(0.98);
-    }
-    .operator-container {
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 5px;
-      margin-top: 10px;
-    }
-    .drucken-button {
-      background-color: #007bff;
-      color: #ffffff;
-    }
-    .drucken-button:hover {
-      background-color: #3399ff;
-    }
-    .drucken-button:active {
-      transform: scale(0.98);
-    }
-    .reset-button {
-      background-color: #ff0000;
-      color: #ffffff;
-    }
-    .reset-button:hover {
-      background-color: #ff4d4d;
-    }
-    .reset-button:active {
-      transform: scale(0.98);
-    }
-    .zurueck-button {
-      background-color: #ff9900;
-      color: #ffffff;
-    }
-    .zurueck-button:hover {
-      background-color: #ffb84d;
-    }
-    .zurueck-button:active {
-      transform: scale(0.98);
-    }
-    @media (max-width: 1200px) {
-      .main-container {
-        flex-direction: column;
-        align-items: center;
-      }
-      .left-panel, .right-panel {
-        width: 90%;
-        height: auto;
-      }
-    }
-  </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="header">2025 Michael Wolf @V 1.7</div>
+  <div class="header">
+    <div class="header__left">
+      <span class="badge">Tippstreifen</span>
+      <span>2025 Michael Wolf · V 1.7</span>
+    </div>
+    <div class="header__right">
+      <button id="skinNext" class="pill-toggle" type="button" aria-label="Design wechseln" aria-pressed="false">
+        <span class="pill-toggle__icon" aria-hidden="true">🎨</span>
+        <span class="pill-toggle__text">Design</span>
+      </button>
+      <button id="themeToggle" class="pill-toggle" type="button" aria-label="Light/Dark umschalten" aria-pressed="false">
+        <span class="pill-toggle__icon" aria-hidden="true">☀️</span>
+        <span class="pill-toggle__text">Light</span>
+      </button>
+    </div>
+  </div>
   <h1>Tippstreifen 2.0</h1>
   <div class="main-container">
     <div class="left-panel" tabindex="0">
@@ -185,8 +31,6 @@
       <div class="status-panel"></div>
     </div>
     <div class="right-panel">
-      <input type="text" placeholder="Name, Vorname" class="input-field" disabled>
-      <input type="text" placeholder="PIN" class="input-field" disabled>
       <div class="decimal-container">
         <label class="decimal-label">Nachkommastellen:</label>
         <input type="number" value="3" min="0" max="10" class="input-field">
@@ -211,5 +55,6 @@
     </div>
   </div>
   <script src="calculator.js"></script>
+  <script src="theme.js"></script>
 </body>
 </html>
