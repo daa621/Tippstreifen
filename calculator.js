@@ -293,8 +293,19 @@ function handleOperatorClassic(op) {
     return;
   }
   let value = num;
-  if (isPercent) value /= 100;
-  let usedThisNumber = false;
+
+// Classic Prozent-Verhalten (gewünscht):
+// Bei + / -: y% meint "y Prozent vom aktuellen Zwischensaldo"
+// Bei * / /: y% bleibt Faktor (y/100)
+if (isPercent) {
+  if (op === "+" || op === "-") {
+    const base = classicTerms.reduce((acc, v) => acc + v, 0);
+    value = base * (num / 100);
+  } else {
+    value = num / 100;
+  }
+}
+let usedThisNumber = false;
   if (classicLastOp === "*" || classicLastOp === "/") {
     if (classicTerms.length === 0) {
       classicTerms.push(value);
@@ -323,10 +334,10 @@ function handleOperatorClassic(op) {
   if (!usedThisNumber) {
     if (op === "+") {
       classicTerms.push(+value);
-      lines.push({ text: formatNumber(value) + "+", color: "black", bold: false });
+      lines.push({ text: (isPercent ? (formatNumber(num) + "%") : formatNumber(value)) + "+", color: "black", bold: false });
     } else if (op === "-") {
       classicTerms.push(-value);
-      lines.push({ text: formatNumber(value) + "-", color: "red", bold: false });
+      lines.push({ text: (isPercent ? (formatNumber(num) + "%") : formatNumber(value)) + "-", color: "red", bold: false });
     } else if (op === "*" || op === "/") {
       if (classicTerms.length === 0) {
         classicTerms.push(value);
@@ -338,14 +349,11 @@ function handleOperatorClassic(op) {
       }
     }
   }
-  if (op === "*" || op === "/") {
-    classicLastOp = op;
-  } else {
-    classicLastOp = null;
-  }
+  classicLastOp = op;
   currentLine = "";
   updateDisplay();
 }
+
 
 function handleEnterClassic() {
   saveState();
@@ -353,8 +361,19 @@ function handleEnterClassic() {
   const { num, isPercent } = parseNumber(trim);
   if (!isNaN(num) && trim !== "") {
     let value = num;
-    if (isPercent) value /= 100;
-    if (classicLastOp === "*" || classicLastOp === "/") {
+
+// Classic Prozent-Verhalten (gewünscht):
+// Bei + / -: y% meint "y Prozent vom aktuellen Zwischensaldo"
+// Bei * / /: y% bleibt Faktor (y/100)
+if (isPercent) {
+  if (classicLastOp === "+" || classicLastOp === "-") {
+    const base = classicTerms.reduce((acc, v) => acc + v, 0);
+    value = base * (num / 100);
+  } else {
+    value = num / 100;
+  }
+}
+if (classicLastOp === "*" || classicLastOp === "/") {
       if (classicTerms.length === 0) {
         classicTerms.push(value);
         lines.push({ text: formatNumber(value), color: "black", bold: false });
@@ -380,13 +399,14 @@ function handleEnterClassic() {
     } else {
       if (classicLastOp === "+" || classicLastOp === "-") {
         const operatorColor = (classicLastOp === "-") ? "red" : "black";
-        lines.push({ text: formatNumber(value) + classicLastOp, color: operatorColor, bold: false });
+        const shown = isPercent ? (formatNumber(num) + "%" ) : formatNumber(value);
+        lines.push({ text: shown + classicLastOp, color: operatorColor, bold: false });
         if (classicLastOp === "-") {
           classicTerms.push(-value);
         } else {
           classicTerms.push(+value);
         }
-      } else {
+} else {
         classicTerms.push(+value);
         lines.push({ text: formatNumber(value), color: "black", bold: false });
       }
@@ -548,10 +568,21 @@ operatorButtons.forEach(button => {
   button.addEventListener("click", () => {
     saveState();
     const op = button.innerText;
+
+    // "%" is not an operator in our calculator modes.
+    // It behaves like a suffix to the current input (same as keyboard "%").
+    if (op === "%") {
+      if (!currentLine.includes("%")) currentLine += "%";
+      updateDisplay();
+      leftPanel.focus();
+      return;
+    }
+
     handleOperator(op);
     leftPanel.focus();
   });
 });
+
 
 // Reset-Button
 const resetButton = rightPanel.querySelector(".reset-button");
@@ -761,4 +792,5 @@ druckenButton.addEventListener("click", () => {
  */
 updateDisplay();
 leftPanel.focus();
+console.log("Tippstreifen calculator v1.13 loaded");
 })();
