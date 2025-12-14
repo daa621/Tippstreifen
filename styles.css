@@ -314,8 +314,53 @@ html[data-skin="neon"]{
 
 /* Base */
 html, body{
-  height: 100%;
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+height: 100%;
   margin: 0;
+}
+
+/* Animierter Background-Layer (liegt über html-Hintergrund, unter dem UI) */
+body::before{
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background:
+    radial-gradient(900px 520px at 18% 10%, var(--bg-spot-1), transparent 60%),
+    radial-gradient(820px 520px at 82% 20%, var(--bg-spot-2), transparent 60%);
+  animation: bgFloat 16s ease-in-out infinite alternate;
+  will-change: transform, filter;
+}
+
+/* Alles im Body bleibt über dem Background-Layer */
+body > *{
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes bgFloat{
+  0%{
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+  50%{
+    transform: translate3d(-2%, 1%, 0) scale(1.02);
+    filter: blur(0.5px);
+  }
+  100%{
+    transform: translate3d(2%, -1%, 0) scale(1.03);
+    filter: blur(0px);
+  }
+}
+
+
+html{
+  min-height: 100%;
+  background: linear-gradient(180deg, var(--bg-a), var(--bg-b));
 }
 
 body{
@@ -631,13 +676,12 @@ html[data-theme="dark"] select.input-field option{
   }
 }
 
-/* Motion preferences */
-@media (prefers-reduced-motion: reduce){
-  *{ transition: none !important; }
-}
 
 /* Print */
 @media print{
+  html{ background: #fff !important; }
+  body::before{ display: none !important; }
+
   body{
     background: #fff !important;
     color: #000 !important;
@@ -663,4 +707,77 @@ html[data-theme="dark"] select.input-field option{
   pre{
     color: #000 !important;
   }
+}
+
+
+
+/* ==========================
+   Test effects bundle (v0.1)
+   Keyboard-first micro-interactions
+   ========================== */
+
+.left-panel{ position: relative; }
+
+/* 1) Typing glow on left panel */
+.left-panel.is-typing{
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--accent) 42%, transparent),
+    var(--shadow);
+}
+.left-panel.is-typing::after{
+  content:"";
+  position:absolute;
+  inset: -1px;
+  border-radius: var(--radius);
+  pointer-events:none;
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 18%, transparent);
+  opacity: .55;
+}
+
+/* 2) Tape paper grain overlay (very subtle) */
+.rechen-container{ position: relative; }
+.rechen-container::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: var(--radius-sm);
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(0,0,0,.06) 0 1px, transparent 2px) 0 0/22px 22px,
+    radial-gradient(circle at 70% 55%, rgba(0,0,0,.05) 0 1px, transparent 2px) 0 0/28px 28px;
+  opacity: .12;
+  mix-blend-mode: multiply;
+}
+html[data-theme="dark"] .rechen-container::after{
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.10) 0 1px, transparent 2px) 0 0/22px 22px,
+    radial-gradient(circle at 72% 58%, rgba(255,255,255,.08) 0 1px, transparent 2px) 0 0/28px 28px;
+  opacity: .10;
+  mix-blend-mode: screen;
+}
+
+/* 3) Current input line highlight */
+pre span:last-child{
+  display:inline-block;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--accent-2) 18%, transparent), transparent);
+}
+
+/* 4) Status "toast" */
+.status-panel{
+  transition: opacity .18s ease, transform .18s ease, filter .18s ease;
+  opacity: .35;
+  transform: translateY(4px);
+}
+.status-panel.toast{
+  opacity: 1;
+  transform: translateY(0);
+  filter: saturate(1.02);
+}
+
+/* 5) Result "punch" on Enter */
+.rechen-container{ transition: filter .20s ease; }
+.rechen-container.punch{
+  filter: contrast(1.08) brightness(1.03);
 }

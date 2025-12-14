@@ -21,6 +21,12 @@ const statusPanel = leftPanel.querySelector(".status-panel");
 function showStatus(msg, color = "var(--text)") {
   statusPanel.style.color = color;
   statusPanel.innerText = msg;
+
+  // Toast feel: show briefly, linger a bit longer on errors
+  statusPanel.classList.add("toast");
+  clearTimeout(showStatus._t);
+  const linger = (String(color).toLowerCase().includes("red")) ? 2400 : 1200;
+  showStatus._t = setTimeout(() => statusPanel.classList.remove("toast"), linger);
 }
 
 /**
@@ -237,6 +243,12 @@ leftPanel.addEventListener("click", () => {
 
 leftPanel.addEventListener("keydown", (ev) => {
   ev.preventDefault();
+
+  // Keyboard-only UI: subtle feedback while typing
+  leftPanel.classList.add("is-typing");
+  clearTimeout(leftPanel._typingT);
+  leftPanel._typingT = setTimeout(() => leftPanel.classList.remove("is-typing"), 380);
+
   const key = ev.key;
   if (key === "Delete") {
     resetAll();
@@ -533,6 +545,11 @@ function handleOperator(op) {
 }
 
 function handleEnter() {
+  // Small "result punch" to make Enter feel physical
+  rechenContainer.classList.add("punch");
+  clearTimeout(rechenContainer._punchT);
+  rechenContainer._punchT = setTimeout(() => rechenContainer.classList.remove("punch"), 150);
+
   if (calcMode === "classic") {
     handleEnterClassic();
   } else {
@@ -790,6 +807,7 @@ druckenButton.addEventListener("click", () => {
 /**
  * 13) START
  */
+console.log("Tippstreifen effects v0.1 active");
 updateDisplay();
 leftPanel.focus();
 console.log("Tippstreifen calculator v1.13 loaded");
